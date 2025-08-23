@@ -5,7 +5,7 @@ from contextlib import suppress
 from datetime import datetime
 import pandas as pd
 import dateutil.parser as dateparser
-from rdflib import BNode, Graph, URIRef, Literal
+from rdflib import BNode, Graph, URIRef
 from rdflib.namespace import DC, FOAF, RDF, RDFS, SDO
 
 from . import Node
