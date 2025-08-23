@@ -5,7 +5,7 @@ from contextlib import suppress
 from datetime import datetime
 import pandas as pd
 import dateutil.parser as dateparser
-from rdflib import BNode, Graph, URIRef
+from rdflib import BNode, Graph, URIRef, Literal
 from rdflib.namespace import DC, FOAF, RDF, RDFS, SDO
 
 from . import Node
@@ -25,18 +25,132 @@ TIME = SafeNamespace("http://www.w3.org/2006/time#")
 BRICK = SafeNamespace("https://brickschema.org/schema/Brick#")
 
 
-def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format) -> Graph:
-    """
-    Writes a partial graph `g` with the info of a chunk of rows.
+def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,mode : str) -> Graph:
+   """
+   Writes a partial graph `g` with the info of a chunk of rows.
 
-    Args:
-        df (pd.DataFrame): a Pandas Dataframe with the info to add to `g`.
-    """
-    for i in range(len(df)):
-        graph += create_graph(df.iloc[i].to_dict())
-    graph.serialize(destination, format=format, encoding="utf-8")
+   Args:
+       df (pd.DataFrame): a Pandas Dataframe with the info to add to `g`.
+   """
+
+   for i in range(len(df)) :
+       if mode == "scraper":
+           graph += create_graph_scraper(df.iloc[i].to_dict(),mode)
+       elif mode == "ave":
+           graph += create_graph_ave(df.iloc[i].to_dict(), mode)
+   graph.serialize(destination, format=format, encoding="utf-8")
 
 
+
+"""
+    El anonymizer lo que hace es alimina los campos vacios y a algunos sitios les cambia el nombre.
+"""
+def anonymize(row : dict) -> dict:
+   
+    row = {k: v for k, v in row.items() if v != ""} 
+    row = Faker.anonymize(row)
+    return row
+
+
+def create_graph_scraper(row: dict, mode: str) -> Graph:
+    row = anonymize(row)
+    g : Graph = SafeGraph()
+
+    #Generar uris y eso, creo q hay q hacerlo en el listing.
+
+    agent, account = add_agent(g, row) #Agent esta en el scraper y account tambien.
+    real_estate = add_real_estate(g, row, mode)
+
+    listing_uri = IO[f'listing_{row["site"]}_{row["listing_id"]}']
+
+    if (listing_uri, RDF.type, PR.RealEstateListing) in g:
+        #Si existe, lo usa
+        listing = listing_uri
+    else:
+        #Si no existe, lo crea
+        listing = add_listing(g, row, mode)
+
+
+    g.add((listing, SIOC.has_creator, account))
+    g.add((account, SIOC.creator_of, listing))
+    g.add((listing, FOAF.maker, agent))
+    g.add((agent, FOAF.made, listing))
+
+    g.add((listing, SIOC.about, real_estate))
+
+    
+    return g
+
+
+
+
+def create_graph_ave(row: dict, mode: str) -> Graph:
+
+
+    row = anonymize(row)
+    g: Graph = SafeGraph() #Guarda el grafo, diciendo q es de tipo Graph
+    
+
+    real_estate = add_real_estate(g, row, mode)
+
+    #Verifica si el listing ya exixte, esto devuelve un URIRef
+    listing_uri = IO[f'listing_{row['site']}_{row['listing_id']}']
+    ##Verifica si el listing ya existe en el grafo
+    if (listing_uri, RDF.type, PR.RealEstateListing) in g:
+        #Si existe, lo usa
+        
+        g.add((listing_uri, SIOC.about, real_estate))
+    else:
+        #Si no existe, lo cre
+        listing = add_listing(g, row, mode)
+        
+        g.add((listing, SIOC.about, real_estate))
+    '''
+    Agrega nuevas features del ave
+    add_features(g, row,real_estate)
+
+    g.add((listing, SIOC.has_creator, account))
+    g.add((account, SIOC.creator_of, listing))
+    g.add((listing, FOAF.maker, agent))
+    g.add((agent, FOAF.made, listing))
+    '''
+    
+    
+    
+
+    return g
+
+
+
+""""
+
+def add_features(g: Graph, row: dict, nodo : Node):
+   if row.get("fot"):
+       add_feature(g, nodo, "fot", row["fot"], dateparser.parse(row.get("date_ave")))
+
+
+   if row.get("frentes") == "":
+       add_feature(g, nodo, "frentes", 1, dateparser.parse(row.get("date_ave")))
+
+
+   if row.get("frente") != "":
+       add_feature(g, nodo, "frente", row["frente"], dateparser.parse(row.get("date_ave")))
+
+
+   for value in ["urb_cerrada", "urb_semicerrada"]:
+       with suppress(KeyError):
+           if row[value] == "True":
+               value = row[value] == "True"
+           else:
+               value = row[value]
+
+
+
+
+           if value:
+               add_feature(g, nodo, value, value, dateparser.parse(row.get("date_ave")))
+"""
+'''
 def create_graph(row: dict) -> Graph:
     """
     Return a graph `g` with the info on `row`.
@@ -62,9 +176,9 @@ def create_graph(row: dict) -> Graph:
     g.add((listing, SIOC.about, real_estate))
 
     return g
+'''
 
-
-def add_listing(g: Graph, row: dict) -> Node:
+def add_listing(g: Graph, row: dict, mode : str) -> Node:
     """Add listing to the graph `g` and return the listing's `Node`."""
 
     @default_to_incremental(PR, Incremental.LISTING)
@@ -128,6 +242,13 @@ def add_price(g: Graph, listing:Node, value: float, currency: str, p_type: str, 
     """Add price to the graph `g` and return the price's `Node`."""
 
     priceValue: Node = BNode()
+    '''
+    @default_to_incremental(IO, Incremental.FEATURE)
+    def create_feature(subject: Node, feature: str) -> Node:
+        return IO[f"feature_{feature}_{subject.fragment}"]
+                    feature_price_1_listing_site1_8061479
+    
+    '''
     featurePrice: Node = create_feature(listing, "price")
     dateNode: Node = BNode()
     
@@ -135,6 +256,7 @@ def add_price(g: Graph, listing:Node, value: float, currency: str, p_type: str, 
     g.add((priceValue, GR.hasCurrency, String(currency)))
     g.add((priceValue, GR.hasCurrencyValue, Float(value)))
     g.add((priceValue, GR.priceType, String(p_type)))
+
     g.add((featurePrice, IO.hasValue, priceValue))
     
     g.add((featurePrice, RDF.type, IO.Precio))
@@ -142,6 +264,7 @@ def add_price(g: Graph, listing:Node, value: float, currency: str, p_type: str, 
 
     g.add((dateNode, RDF.type, TIME.Instant))
     g.add((dateNode, TIME.inXSDDateTimeStamp, DateTime(date)))
+    
     g.add((featurePrice, TIME.hasTime, dateNode))
     
 
@@ -178,7 +301,7 @@ def add_agent(g: Graph, row: dict) -> tuple[Node, Node]:
     return agent, account
 
 
-def add_real_estate(g: Graph, row: dict) -> Node:
+def add_real_estate(g: Graph, row: dict, mode : str) -> Node:
     """
     Add real estate to the graph `g` and return the real estate's
     `Node`.
