@@ -99,12 +99,12 @@ def create_graph_ave(row: dict, mode: str) -> Graph:
     if (listing_uri, RDF.type, PR.RealEstateListing) in g:
         #Si existe, lo usa
         
-        g.add((listing_uri, SIOC.about, real_estate))
+        listing = listing_uri
     else:
         #Si no existe, lo cre
         listing = add_listing(g, row, mode)
         
-        g.add((listing, SIOC.about, real_estate))
+   g.add((listing, SIOC.about, real_estate))
     '''
     Agrega nuevas features del ave
     add_features(g, row,real_estate)
