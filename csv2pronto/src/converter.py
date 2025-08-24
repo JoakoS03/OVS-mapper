@@ -25,7 +25,7 @@ TIME = SafeNamespace("http://www.w3.org/2006/time#")
 BRICK = SafeNamespace("https://brickschema.org/schema/Brick#")
 
 
-def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,mode : str) -> Graph:
+def create_graph_from_chunk(df: pd.DataFrame, graph,destination, format,mode : str) -> Graph:
    """
    Writes a partial graph `g` with the info of a chunk of rows.
 
