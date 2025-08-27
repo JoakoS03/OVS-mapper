@@ -61,15 +61,16 @@ def create_graph_scraper(row: dict, mode: str) -> Graph:
     agent, account = add_agent(g, row) #Agent esta en el scraper y account tambien.
     real_estate = add_real_estate(g, row, mode)
 
+   '''
     listing_uri = IO[f'listing_{row["site"]}_{row["listing_id"]}']
-
     if (listing_uri, RDF.type, PR.RealEstateListing) in g:
         #Si existe, lo usa
         listing = listing_uri
     else:
         #Si no existe, lo crea
         listing = add_listing(g, row, mode)
-
+   '''
+   listing = add_listing(g, row, mode)
 
     g.add((listing, SIOC.has_creator, account))
     g.add((account, SIOC.creator_of, listing))
@@ -92,7 +93,7 @@ def create_graph_ave(row: dict, mode: str) -> Graph:
     
 
     real_estate = add_real_estate(g, row, mode)
-
+   '''
     #Verifica si el listing ya exixte, esto devuelve un URIRef
     listing_uri = IO[f'listing_{row['site']}_{row['listing_id']}']
     ##Verifica si el listing ya existe en el grafo
@@ -103,7 +104,8 @@ def create_graph_ave(row: dict, mode: str) -> Graph:
     else:
         #Si no existe, lo cre
         listing = add_listing(g, row, mode)
-        
+   '''
+   listing = add_listing(g, row, mode)
    g.add((listing, SIOC.about, real_estate))
     '''
     Agrega nuevas features del ave
