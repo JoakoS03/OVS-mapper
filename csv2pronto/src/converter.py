@@ -61,15 +61,6 @@ def create_graph_scraper(row: dict, mode: str) -> Graph:
     agent, account = add_agent(g, row) #Agent esta en el scraper y account tambien.
     real_estate = add_real_estate(g, row, mode)
 
-   '''
-    listing_uri = IO[f'listing_{row["site"]}_{row["listing_id"]}']
-    if (listing_uri, RDF.type, PR.RealEstateListing) in g:
-        #Si existe, lo usa
-        listing = listing_uri
-    else:
-        #Si no existe, lo crea
-        listing = add_listing(g, row, mode)
-   '''
    listing = add_listing(g, row, mode)
 
     g.add((listing, SIOC.has_creator, account))
@@ -93,18 +84,8 @@ def create_graph_ave(row: dict, mode: str) -> Graph:
     
 
     real_estate = add_real_estate(g, row, mode)
-   '''
-    #Verifica si el listing ya exixte, esto devuelve un URIRef
-    listing_uri = IO[f'listing_{row['site']}_{row['listing_id']}']
-    ##Verifica si el listing ya existe en el grafo
-    if (listing_uri, RDF.type, PR.RealEstateListing) in g:
-        #Si existe, lo usa
-        
-        listing = listing_uri
-    else:
-        #Si no existe, lo cre
-        listing = add_listing(g, row, mode)
-   '''
+   
+
    listing = add_listing(g, row, mode)
    g.add((listing, SIOC.about, real_estate))
     '''
@@ -124,34 +105,7 @@ def create_graph_ave(row: dict, mode: str) -> Graph:
 
 
 
-""""
 
-def add_features(g: Graph, row: dict, nodo : Node):
-   if row.get("fot"):
-       add_feature(g, nodo, "fot", row["fot"], dateparser.parse(row.get("date_ave")))
-
-
-   if row.get("frentes") == "":
-       add_feature(g, nodo, "frentes", 1, dateparser.parse(row.get("date_ave")))
-
-
-   if row.get("frente") != "":
-       add_feature(g, nodo, "frente", row["frente"], dateparser.parse(row.get("date_ave")))
-
-
-   for value in ["urb_cerrada", "urb_semicerrada"]:
-       with suppress(KeyError):
-           if row[value] == "True":
-               value = row[value] == "True"
-           else:
-               value = row[value]
-
-
-
-
-           if value:
-               add_feature(g, nodo, value, value, dateparser.parse(row.get("date_ave")))
-"""
 '''
 def create_graph(row: dict) -> Graph:
     """
